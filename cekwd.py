@@ -45,6 +45,7 @@ def cek_saldo_dan_status(playwright, situs, userid):
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
+        page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "font", "stylesheet"] else route.continue_())
         page.goto(f"https://{situs}/#/index?category=lottery", wait_until="domcontentloaded", timeout=60000)
 
         try:
@@ -55,6 +56,8 @@ def cek_saldo_dan_status(playwright, situs, userid):
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
         page1 = popup_info.value
+        
+        page1.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "font", "stylesheet"] else route.continue_())
 
         page1.locator("input#loginUser").wait_for()
         page1.locator("input#loginUser").type(userid, delay=100)
