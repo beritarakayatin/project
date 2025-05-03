@@ -45,55 +45,46 @@ def cek_saldo_dan_status(playwright, situs, userid):
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
-        page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "font", "stylesheet"] else route.continue_())
-        page.goto(f"https://{situs}/#/index?category=lottery", wait_until="domcontentloaded", timeout=60000)
+
+        # 🔹 1️⃣ LOGIN dan cek saldo di halaman /mine
+        page.goto(f"https://{situs}/#/mine", wait_until="domcontentloaded", timeout=60000)
+
+        page.locator("input#loginUser").wait_for()
+        page.locator("input#loginUser").type(userid, delay=100)
+        page.locator("input#loginPsw").type(pw, delay=120)
+        page.locator("div.login-btn").click()
 
         try:
-            page.get_by_role("img", name="close").click()
+            page.get_by_role("link", name="Saya Setuju").click()
         except:
             pass
 
-        with page.expect_popup() as popup_info:
-            page.get_by_role("heading", name="HOKI DRAW").click()
-        page1 = popup_info.value
-        
-        page1.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "font", "stylesheet"] else route.continue_())
+        time.sleep(3)
 
-        page1.locator("input#loginUser").wait_for()
-        page1.locator("input#loginUser").type(userid, delay=100)
-        page1.locator("input#loginPsw").type(pw, delay=120)
-        page1.locator("div.login-btn").click()
-
-        try:
-            page1.get_by_role("link", name="Saya Setuju").click()
-        except:
-            pass
-
-        time.sleep(3)  # tunggu saldo muncul
-
-        saldo_text = page1.locator("span.overage-num").inner_text().strip()
+        # 🔹 2️⃣ Ambil saldo dari <li class="myPurse">
+        saldo_text = page.locator(".myPurse span i").inner_text().strip()
         saldo_value = parse_saldo(saldo_text)
 
-        # Ambil status paling atas dari halaman hasil
-        page1.get_by_role("link", name="TRANSAKSI HISTORY TRANSAKSI").click()
-        time.sleep(3)
-        rows = page1.query_selector_all("table tbody tr")
-        status_text = "-"
-        if rows:
-            cols = rows[0].query_selector_all("td")
-            if len(cols) >= 6:
-                raw_status = cols[5].inner_text().strip()
-                if "WIN" in raw_status.upper():
-                    status_text = "Menang"
-                else:
-                    status_text = "Tidak ada Kemenangan"
+        # 🔹 3️⃣ Ambil Nama Permainan terbaru dari betRecords
+        page.goto(f"https://{situs}/#/betRecords")
+        page.get_by_text("Togel").click()
 
+        page.locator(".list .ls-list-item").first.wait_for(timeout=10000)
+        first_item = page.locator(".list .ls-list-item").first
+        nama_permainan = first_item.locator("li").nth(2).inner_text().strip()
 
+        # 🔹 4️⃣ Cek apakah ada kata 'Menang'
+        if "Menang" in nama_permainan:
+            status_permainan = "🏆 Menang"
+        else:
+            status_permainan = "🥲 Tidak menang"
+
+        # 🔹 5️⃣ Kirim pesan Telegram
         pesan = (
             f"<b>[STATUS]</b>\n"
             f"👤 {userid}\n"
             f"💰 SALDO: <b>Rp {saldo_value:,.0f}</b>\n"
-            f"🎯 <b>{status_text}</b>\n"
+            f"{status_permainan}\n"
             f"⌚ {wib}"
         )
         kirim_telegram(pesan)
@@ -111,7 +102,7 @@ def main():
             if '|' not in baris:
                 continue
             if baris.strip().startswith("#"):
-                continue  # <-- Lewati baris komentar
+                continue  # Lewati baris komentar
             parts = baris.strip().split('|')
             if len(parts) != 4:
                 continue
