@@ -42,7 +42,7 @@ def run(playwright, situs, userid, *_):
 
 def cek_saldo_dan_status(playwright, situs, userid):
     try:
-        browser = playwright.chromium.launch(headless=False)
+        browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
         page.goto(f"https://{situs}/#/index?category=lottery", wait_until="domcontentloaded", timeout=60000)
