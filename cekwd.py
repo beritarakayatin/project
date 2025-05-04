@@ -72,7 +72,7 @@ def cek_status_wd(page, situs):
 
 def cek_saldo_dan_status(playwright, situs, userid):
     try:
-        browser = playwright.chromium.launch(headless=False)
+        browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
 
