@@ -61,8 +61,14 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         )
         page = context.new_page()
         page.goto(f"https://{situs}/#/index?category=lottery")
-
-        page.get_by_role("img", name="close").click()
+        
+        try:
+            close_button = page.get_by_role("img", name="close")
+            if close_button.is_visible():
+                close_button.click()
+        except:
+            pass  # Jika tidak ada tombol 'close', lanjutkan
+            
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
         page1 = popup_info.value
